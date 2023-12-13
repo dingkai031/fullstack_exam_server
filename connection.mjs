@@ -1,11 +1,14 @@
 import mysql from 'mysql2';
+import { config } from 'dotenv';
+
+config();
 
 const pool = mysql
 	.createPool({
-		host: 'localhost',
-		user: 'root',
-		password: '',
-		database: 'fullstack_exam',
+		host: process.env.MYSQLHOST,
+		user: process.env.MYSQLUSER,
+		password: process.env.MYSQLPASSWORD,
+		database: process.env.MYSQLDB,
 	})
 	.promise();
 
@@ -14,4 +17,4 @@ async function getData(query) {
 	return rows;
 }
 
-export { getData };
+export { getData, pool };
