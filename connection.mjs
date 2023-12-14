@@ -12,9 +12,4 @@ const pool = mysql
 	})
 	.promise();
 
-async function getData(query) {
-	const [rows] = await pool.query(query);
-	return rows;
-}
-
-export { getData, pool };
+export { pool };

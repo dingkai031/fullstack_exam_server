@@ -7,11 +7,6 @@ import Joi from 'joi';
 const router = Router();
 
 router.post('/', async (req, res) => {
-	// ● contains at least one lower character
-	// ● contains at least one upper character
-	// ● contains at least one digit character
-	// ● contains at least one special character
-	// ● contains at least 8 characters
 	const userSchema = Joi.object({
 		full_name: Joi.string().min(8).max(50).required(),
 		email: Joi.string().email().max(50).required(),
