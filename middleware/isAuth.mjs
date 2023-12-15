@@ -9,9 +9,10 @@ const __dirDirectory = dirname(__fileDirectory);
 config({ path: `${__dirDirectory}/../.env` });
 
 export default (req, res, next) => {
-	console.log('masuk sini');
 	if (!req.cookies.access_token)
-		return res.status(403).json({ message: 'Unauthenticated user' });
+		return res
+			.status(403)
+			.json({ message: 'Unauthenticated user 1', cookie: req.cookies });
 	const { access_token: token } = req.cookies;
 	let jwtVerify = null;
 	try {
@@ -20,14 +21,14 @@ export default (req, res, next) => {
 		return res
 			.clearCookie('access_token')
 			.status(403)
-			.json({ message: 'Unauthenticated user' });
+			.json({ message: 'Unauthenticated user 2' });
 	}
 	const { exp: tokenExpireTime, full_name, email } = jwtVerify;
 	if (Date.now() >= tokenExpireTime * 1000)
 		return res
 			.clearCookie('access_token')
 			.status(403)
-			.json({ message: 'Unauthenticated user' });
+			.json({ message: 'Unauthenticated user 3' });
 	res.locals.userData = { full_name, email };
 	next();
 };
