@@ -29,6 +29,7 @@ app.use(
 		origin: [
 			'http://localhost:5173',
 			'https://fullstack-exam-client.vercel.app',
+			'https://fullstack-exam-client.codewithyovan.tech',
 		],
 		credentials: true,
 	}),
