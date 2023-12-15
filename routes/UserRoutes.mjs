@@ -107,8 +107,6 @@ router.post('/', async (req, res) => {
 		`INSERT INTO email_verification (id, user_id) VALUES ('${emailVerifId}', '${id}' )`,
 	);
 
-	console.log(process.env);
-
 	const sendEmailStatus = await sendEmail(
 		email,
 		capitalizeName,
