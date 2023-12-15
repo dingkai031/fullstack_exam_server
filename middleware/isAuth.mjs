@@ -9,7 +9,7 @@ const __dirDirectory = dirname(__fileDirectory);
 config({ path: `${__dirDirectory}/../.env` });
 
 export default (req, res, next) => {
-	console.log(req.cookies);
+	console.log('masuk sini');
 	if (!req.cookies.access_token)
 		return res.status(403).json({ message: 'Unauthenticated user' });
 	const { access_token: token } = req.cookies;
