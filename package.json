@@ -5,8 +5,7 @@
 	"main": "index.mjs",
 	"type": "module",
 	"scripts": {
-		"test": "nodemon index.mjs",
-		"vercel-build": "echo run"
+		"test": "nodemon index.mjs"
 	},
 	"author": "yovan julio adam",
 	"license": "ISC",
