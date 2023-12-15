@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 import { pool } from './connection.mjs';
 import cookieParser from 'cookie-parser';
 
-import sendEmail from './utils/sendEmail.mjs';
+// import sendEmail from './utils/sendEmail.mjs';
 config();
 
 // routes import
@@ -90,10 +90,10 @@ app.get('/logout', isAuth, async (req, res) => {
 		.json({ message: 'logout success' });
 });
 
-app.get('/', async (req, res) => {
-	// const data = await getData('SELECT * FROM users');
-	return res.status(200).json(req.cookies);
-});
+// app.get('/', async (req, res) => {
+// 	// const data = await getData('SELECT * FROM users');
+// 	return res.status(200).json(req.cookies);
+// });
 
 // app.get('/test-send-email', async (req, res) => {
 // 	const result = await sendEmail('yovanjulioadam@gmail.com', 'John cena');
@@ -111,3 +111,5 @@ const port = process.env.PORT || 3001;
 app.listen(port, () => {
 	console.log(`listening on port ${port}`);
 });
+
+export default app;
