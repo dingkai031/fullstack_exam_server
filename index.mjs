@@ -26,7 +26,10 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(
 	cors({
-		origin: ['http://localhost:5173'],
+		origin: [
+			'http://localhost:5173',
+			'https://fullstack-exam-client.vercel.app',
+		],
 		credentials: true,
 	}),
 );
