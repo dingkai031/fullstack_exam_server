@@ -1,28 +1,27 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { pool } from '../connection.mjs';
-import { v4 as uuidv4 } from 'uuid';
 import Joi from 'joi';
-import sendEmail from '../utils/sendEmail.mjs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { config } from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
+import { pool } from '../connection.mjs';
+import sendEmail from '../utils/sendEmail.mjs';
 import isAuth from '../middleware/isAuth.mjs';
+import setEnvDir from '../utils/setEnvDir.mjs';
+import capitalizeString from '../utils/capitalizeString.mjs';
 
-const __fileDirectory = fileURLToPath(import.meta.url);
-const __dirDirectory = dirname(__fileDirectory);
-config({ path: `${__dirDirectory}/../.env` });
+setEnvDir('../.env');
 
 const router = Router();
 
+// get all users (require an authentication)
 router.get('/', isAuth, async (req, res) => {
 	const [allUser] = await pool.query(
 		'SELECT id, created_at, full_name, email, total_login, last_logout_date, last_login_date FROM users',
 	);
 	res.json(allUser);
 });
+// get user data base on email (require an authentication)
 router.get('/:emailUser', isAuth, async (req, res) => {
 	const { emailUser } = req.params;
 	const [[userData]] = await pool.query(
@@ -43,6 +42,7 @@ router.get('/:emailUser', isAuth, async (req, res) => {
 		},
 	});
 });
+// verify user email base on email
 router.get('/verify-email/:emailId', async (req, res) => {
 	const { emailId } = req.params;
 	const [[emailData]] = await pool.query(
@@ -70,6 +70,42 @@ router.get('/verify-email/:emailId', async (req, res) => {
 		token,
 	});
 });
+// resend an email for unverified email
+router.post('/resend-email', async (req, res) => {
+	const { email } = req.body;
+	const { value: validatedEmail, error } = Joi.string()
+		.required()
+		.email()
+		.validate(email);
+	if (error) return res.status(404).json({ message: error.details[0].message });
+	const [[userData]] = await pool.query(
+		'SELECT id. full_name, status FROM users WHERE email=?',
+		[validatedEmail],
+	);
+	if (!userData)
+		return res.status(404).json({
+			message: 'Unknown user, please sign up first',
+			status: 'unknown_email',
+		});
+	if (parseInt(userData.status) === 1)
+		return res.status(400).json({
+			message: 'Email already verified, please login',
+			staus: 'verified',
+		});
+
+	const capitalizeName = capitalizeString(userData.full_name);
+	const emailVerifId = uuidv4();
+	await pool.query(
+		`INSERT INTO email_verification (id, user_id) VALUES ('${emailVerifId}', '${userData.id}' )`,
+	);
+	const sendEmailStatus = await sendEmail(
+		validatedEmail,
+		capitalizeName,
+		`${process.env.CLIENT_URL}/verify-email/${validatedEmail}`,
+	);
+	return res.json({ message: 'Email sent', status: sendEmailStatus });
+});
+// register a user
 router.post('/', async (req, res) => {
 	const userSchema = Joi.object({
 		full_name: Joi.string().min(8).max(50).required(),
@@ -132,14 +168,11 @@ router.post('/', async (req, res) => {
 	const id = uuidv4();
 
 	const [createdUser] = await pool.query(
-		`INSERT INTO users (id, full_name, email, password) VALUES ('${id}', ?, ?, '${hashedPassword}')`,
-		[full_name, email],
+		`INSERT INTO users (id, full_name, email, password, total_login, last_login_date) VALUES (?, ?, ?, ?, '1', CURRENT_TIMESTAMP)`,
+		[id, full_name, email, hashedPassword],
 	);
 
-	const capitalizeName = full_name
-		.split(' ')
-		.map((word) => word[0].toUpperCase() + word.substr(1))
-		.join(' ');
+	const capitalizeName = capitalizeString(full_name);
 
 	const emailVerifId = uuidv4();
 
@@ -159,6 +192,7 @@ router.post('/', async (req, res) => {
 		emailStatus: sendEmailStatus,
 	});
 });
+// update user data (require an authentication)
 router.patch('/', isAuth, async (req, res) => {
 	const {
 		full_name: newFull_name,

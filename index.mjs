@@ -8,6 +8,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from './connection.mjs';
 import cookieParser from 'cookie-parser';
+import { v4 as uuidv4 } from 'uuid';
+
+import { OAuth2Client } from 'google-auth-library';
 
 // import sendEmail from './utils/sendEmail.mjs';
 config();
@@ -53,11 +56,16 @@ app.post('/login', async (req, res) => {
 	}
 	const { email, password } = value;
 	const [[user]] = await pool.query(
-		`SELECT full_name, email, password, total_login FROM users WHERE email=?`,
+		`SELECT full_name, email, password, total_login, status FROM users WHERE email=?`,
 		[email],
 	);
 	if (!user)
 		return res.status(404).json({ message: 'email or password is invalid' });
+	if (parseInt(user.status) === 0)
+		return res.status(401).json({
+			message: 'email is not verified',
+			status: 'unverified_email',
+		});
 	const passwordCompareResult = await bcrypt.compare(password, user.password);
 	if (!passwordCompareResult)
 		return res.status(404).json({ message: 'email or password is invalid' });
@@ -82,6 +90,42 @@ app.post('/login', async (req, res) => {
 	// .cookie('access_token', token, { sameSite: 'none' })
 });
 
+app.post('/login-oauth', async (req, res) => {
+	const client = new OAuth2Client();
+	let ticket = null;
+	try {
+		ticket = await client.verifyIdToken({
+			idToken: req.body.credential,
+			audience: req.body.clientId,
+		});
+	} catch (e) {
+		return res.status(400).json({ message: 'failed to verify token' });
+	}
+	const payload = ticket.getPayload();
+	const { email, name: full_name, exp } = payload;
+	// check if the user has registered or not
+	const [[userData]] = await pool.query(
+		'SELECT email FROM users WHERE email=?',
+		[email],
+	);
+	// if not register the user without password
+	const id = uuidv4();
+	if (!userData) {
+		await pool.query(
+			'INSERT INTO users (id, email, full_name, status, password, last_login_date, total_login) VALUES (?, ?, ?, "1", "", CURRENT_TIMESTAMP, "1")',
+			[id, email, full_name],
+		);
+	} else {
+		await pool.query(
+			'UPDATE users SET last_login_date=CURRENT_TIMESTAMP, total_login=total_login + 1 WHERE email=?',
+			[email],
+		);
+	}
+	const token = jwt.sign({ full_name, email, exp }, process.env.WEB_SECRET);
+
+	return res.json({ message: 'login success', token });
+});
+
 app.get('/logout', isAuth, async (req, res) => {
 	const { email: userEmail } = res.locals.userData;
 	await pool.query(
@@ -93,17 +137,6 @@ app.get('/logout', isAuth, async (req, res) => {
 		.status(200)
 		.json({ message: 'logout success' });
 });
-
-// app.get('/', async (req, res) => {
-// 	// const data = await getData('SELECT * FROM users');
-// 	return res.status(200).json(req.cookies);
-// });
-
-// app.get('/test-send-email', async (req, res) => {
-// 	const result = await sendEmail('yovanjulioadam@gmail.com', 'John cena');
-// 	// const data = await getData('SELECT * FROM users');
-// 	return res.status(200).json(result);
-// });
 
 // if request url is not valid
 app.use((req, res) => {

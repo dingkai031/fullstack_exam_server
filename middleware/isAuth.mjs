@@ -1,13 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { config } from 'dotenv';
+import setEnvDir from '../utils/setEnvDir.mjs';
 
-const __fileDirectory = fileURLToPath(import.meta.url);
-const __dirDirectory = dirname(__fileDirectory);
-
-config({ path: `${__dirDirectory}/../.env` });
-
+setEnvDir('../.env');
 export default (req, res, next) => {
 	if (!req.cookies.access_token)
 		return res
