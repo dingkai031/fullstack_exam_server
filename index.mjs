@@ -91,37 +91,57 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/login-oauth', async (req, res) => {
-	const client = new OAuth2Client();
-	let ticket = null;
-	try {
-		ticket = await client.verifyIdToken({
-			idToken: req.body.credential,
-			audience: req.body.clientId,
-		});
-	} catch (e) {
-		return res.status(400).json({ message: 'failed to verify token' });
+	let email = null;
+	let full_name = null;
+	let exp = null;
+	if (req.body.type === 'google') {
+		const client = new OAuth2Client();
+		let ticket = null;
+		try {
+			ticket = await client.verifyIdToken({
+				idToken: req.body.credential,
+				audience: req.body.clientId,
+			});
+		} catch (e) {
+			return res.status(400).json({ message: 'failed to verify token' });
+		}
+		const payload = ticket.getPayload();
+		email = payload.email;
+		full_name = payload.name;
+		exp = payload.exp;
+	} else if (req.body.type === 'facebook') {
+		email = req.body.email;
+		full_name = req.body.full_name;
+	} else {
+		return res.status(404).json({ message: 'uknown request' });
 	}
-	const payload = ticket.getPayload();
-	const { email, name: full_name, exp } = payload;
 	// check if the user has registered or not
 	const [[userData]] = await pool.query(
 		'SELECT email FROM users WHERE email=?',
 		[email],
 	);
 	// if not register the user without password
-	const id = uuidv4();
+	let result = null;
 	if (!userData) {
+		const id = uuidv4();
 		await pool.query(
 			'INSERT INTO users (id, email, full_name, status, password, last_login_date, total_login) VALUES (?, ?, ?, "1", "", CURRENT_TIMESTAMP, "1")',
 			[id, email, full_name],
 		);
 	} else {
-		await pool.query(
+		result = await pool.query(
 			'UPDATE users SET last_login_date=CURRENT_TIMESTAMP, total_login=total_login + 1 WHERE email=?',
 			[email],
 		);
 	}
-	const token = jwt.sign({ full_name, email, exp }, process.env.WEB_SECRET);
+	const token = jwt.sign(
+		{
+			full_name,
+			email,
+			exp: exp ? exp : Math.floor(new Date().getTime() / 1000) + 60 * 60 * 12,
+		},
+		process.env.WEB_SECRET,
+	);
 
 	return res.json({ message: 'login success', token });
 });
