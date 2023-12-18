@@ -27,16 +27,15 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(helmet());
-// const corsOption = {
-// 	origin: [
-// 		'http://localhost:5173',
-// 		'https://fullstack-exam-client.codewithyovan.tech',
-// 		'https://fullstack-exam-client.codewithyovan.tech/',
-// 		'*',
-// 	],
-// 	credentials: true,
-// };
-app.use(cors({ credentials: true }));
+app.use(
+	cors({
+		origin: [
+			'http://localhost:5173',
+			'https://fullstack-exam-client.codewithyovan.tech',
+		],
+		credentials: true,
+	}),
+);
 
 // routes registration
 app.use('/user', UserRoutes);
