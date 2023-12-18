@@ -31,8 +31,8 @@ app.use(
 	cors({
 		origin: [
 			'http://localhost:5173',
-			'https://fullstack-exam-client.vercel.app',
 			'https://fullstack-exam-client.codewithyovan.tech',
+			'https://fullstack-exam-client.codewithyovan.tech/',
 		],
 		credentials: true,
 	}),
