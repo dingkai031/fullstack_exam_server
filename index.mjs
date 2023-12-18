@@ -36,7 +36,7 @@ app.use(helmet());
 // 	],
 // 	credentials: true,
 // };
-app.use(cors());
+app.use(cors({ credentials: true }));
 
 // routes registration
 app.use('/user', UserRoutes);
